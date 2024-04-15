@@ -7,6 +7,6 @@ Readme: https://foam-language-c16.notion.site/Readme-c9d3c837da9a4728a7f35f8bd04
 
 
 # Acknowledgement
-* CoAlign
+* [CoAlign](https://github.com/yifanlu0227/CoAlign)
 
 Sincere appreciation for their great contributions.
