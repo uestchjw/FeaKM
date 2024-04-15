@@ -1,0 +1,72 @@
+experiment: FeaKM_wo_detector
+restore: false
+data:
+    name: CoAlignDataset_mixup
+
+model:
+    name: Pipeline
+    extractor:
+        name: SuperPoint_wo_detector
+        has_detector: false   
+        has_descriptor: true  
+        sparse_outputs: true
+        descriptor_dim: 256
+        detection_threshold: 0.2
+        nms_radius: 3            # nms_radius: 0 means no NMS
+        refinement_radius: 0
+        remove_borders: 2     # remove detections that are too close to the image borders
+        
+
+        force_num_keypoints: true
+        max_num_keypoints: 128    # keep only the N keypoints with highest score
+        max_num_keypoints_val: 128 
+        randomize_keypoints_training: false # if true, randomly select N keypoints to train on
+        legacy_sampling: true     # True to use the old broken sampling
+
+
+    matcher:
+        name: LightGlue_CoAlign
+        n_layers: 9  
+        filter_threshold: 0.1 # 0.1 in glue-factoy
+        depth_confidence: -1  # early stopping, disable with -1
+        mp: false  # enable mixed precision
+        
+        flash: false
+        checkpointed: false
+    run_gt_in_forward: false
+    th_positive: 3.0
+    th_negative: 3.0
+
+    loss: 
+        gamma: 1.0
+        fn: "nll"
+        nll_balancing: 0.5
+
+train:
+    seed: 0
+    epoches: 50
+    batch_size: 16
+    num_workers: 4
+    # log
+    log_every_iter: 100
+    eval_every_iter: 300 
+    save_every_iter: 300 
+    shuffle: true
+    drop_last: true
+    best_key: "loss/total"  # key to use to select the best checkpoint
+
+    optimizer: adam
+    optimizer_options: {}  # optional arguments passed to the optimizer
+    lr: 2e-4
+    lr_schedule:
+        start: 30
+        type: exp
+        on_epoch: true
+        exp_div_10: 10
+
+
+val:
+    batch_size: 16
+    shuffle: false
+    num_workers: 4
+    drop_last: false
