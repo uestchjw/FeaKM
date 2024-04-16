@@ -4,16 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.utils.misc import pad_and_stack
-# todo: 有这样几个问题
-# todo: 1. 关键点mask如何确定？
-# todo: 2. 输入model的是2个feature, 还是1个feature?
-# 答: 每次处理1个feature, 调用2次
-# pred0 = self.extract_view(data, "0")
-# pred1 = self.extract_view(data, "1")
-
-# todo: 3. 输入的feature需不需要标准化, 类似RGB那样
-
-
 
 def simple_nms(scores, radius):
     """Perform non maximum suppression on the heatmap using max-pooling.
@@ -108,12 +98,6 @@ def soft_argmax_refinement(keypoints, scores, radius: int):
 
 
 
-#! CoAlign的数据集格式:
-# data_dict:
-    # "feature":       (2, 128, 100, 250)
-    # "cls_preds":     (2, 2, 100, 250)
-    # "reg_preds":     (2, 14, 100, 250)
-    # "pair_t_matrix": (1, 5, 5, 4, 4)
 class SuperPoint_wo_detector(Module):
     def __init__(self, conf) -> None:
         super().__init__()
@@ -136,11 +120,6 @@ class SuperPoint_wo_detector(Module):
         self.conv4a = nn.Conv2d(c3, c4, kernel_size=3, stride=1, padding=1)
         self.conv4b = nn.Conv2d(c4, c4, kernel_size=3, stride=1, padding=1)
         
-        #! descriptor
-        #! Notice: 从06开始, 弃用下面2行, 使用self.descriptor
-        # self.convDa = nn.Conv2d(c4, c5, kernel_size=3, stride=1, padding=1)
-        # self.convDb = nn.Conv2d(c5, self.conf.descriptor_dim, kernel_size=1, stride=1, padding=0)
-
         self.descriptor = nn.Sequential(
                                         nn.Conv2d(c4, c5, kernel_size=3, stride=1, padding=1),
                                         nn.ReLU(inplace = True),
@@ -214,13 +193,6 @@ class SuperPoint_wo_detector(Module):
             keypoints = [
                 torch.stack(best_kp[1:3], dim=-1)[best_kp[0] == i] for i in range(b) #* len=16
             ]
-            #* print(keypoints[0])
-            # [[ 28,  77],
-            # [ 62, 149],
-            # [ 64, 146],
-            # [ 66,  74],
-            # [ 75, 168],
-            # [ 88, 218]]
             scores = [scores[best_kp[0] == i] for i in range(b)]
 
             # Keep the k keypoints with highest score
@@ -253,16 +225,7 @@ class SuperPoint_wo_detector(Module):
                         )
                     )
                 keypoints, scores = list(keypoints), list(scores)
-            #* print(len(keypoints))     Batchsize
-            #* print(keypoints[0]) 
-            # [[ 28,  77],
-            # [ 62, 149],
-            # [ 64, 146],
-            # [ 66,  74],
-            # [ 75, 168],
-            # [ 88, 218]]
             # 到这里keypoints仍然符合存储坐标系
-
 
             if self.conf["refinement_radius"] > 0:  #* =0, 不进行
                 keypoints = soft_argmax_refinement(
@@ -280,12 +243,11 @@ class SuperPoint_wo_detector(Module):
         # [218.,  88.]]
 
         if self.conf.force_num_keypoints: 
-            # todo: 这个函数干嘛的, 为什么多了很多个不为0的点？
             keypoints = pad_and_stack(     #* [16, 100, 2]
                 keypoints,
                 max_kps,
                 -2,
-                mode="zeros",   #! 感觉我不想要随即点
+                mode="zeros",   
                 # mode="random_c", # origin
                 bounds=(
                     0,
@@ -318,9 +280,7 @@ class SuperPoint_wo_detector(Module):
                     for k, d in zip(keypoints, dense_desc)
                 ]
 
-        # todo: SuperPoint原本没有这行, 但是我觉得会报错, 下面transpose不能对list操作啊
-        # todo: A: batchsize为1时, desc本身就是个[1, 256, 100]的tensor; batchsize≠1时，desc是一个list
-        #! 这2行是我自己加的, 本身没有
+
         if isinstance(desc, list):
             desc = torch.stack(desc, 0) # [B, 256, 100]
 
