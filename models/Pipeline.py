@@ -6,20 +6,8 @@ from torch.nn import Module
 import torch.nn as nn
 import importlib
 
-# todo: 以.py文件运行, 可见范围到底是哪里?
+
 from models.utils.losses import NLLLoss
-
-
-# todo: 有这样几个问题
-# todo: 1. 关键点mask如何确定？
-# todo: 2. 输入model的是2个feature, 还是1个feature?
-# 答: 每次处理1个feature, 调用2次
-# pred0 = self.extract_view(data, "0")
-# pred1 = self.extract_view(data, "1")
-
-# todo: 3. 输入的feature需不需要标准化, 类似RGB那样
-# todo: 4. 是否需要数据增强, 例如旋转, 平移, 缩放等等
-
 
 IGNORE_FEATURE = -2
 UNMATCHED_FEATURE = -1
@@ -52,7 +40,6 @@ def from_homogeneous(points, eps=0.0):
 
 
 #! 这里存在deepcopy的问题, 要小心
-#! 14开始采用
 def warp_points_torch_hjw_v2(points, H, h, w, inverse=True):
     """
     #! points: x轴向右, y轴向下的像素坐标系
@@ -221,7 +208,6 @@ class Pipeline(Module):
 
         return pred
 
-    #! loss是lightglue里面的loss, 里面又包括了NLLloss
     def loss(self, pred, data_dict):
         if self.has_detector: 
             h, w = 96, 248 # need crop
